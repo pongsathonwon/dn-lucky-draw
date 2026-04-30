@@ -3,15 +3,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import type { Customer } from "@/types/supabase";
 
 interface SpinHistoryProps {
-  customers: Customer[];
+  readonly customers: Customer[];
 }
 
 export default function SpinHistory({ customers }: SpinHistoryProps) {
-  const selected = customers
-    .filter((c) => c.spin_count > 0)
-    .sort((a, b) => b.spin_count - a.spin_count);
-
-  if (selected.length === 0) return null;
+  const selected = [...customers.filter((c) => c.spin_count > 0)].sort(
+    (a, b) => b.spin_count - a.spin_count,
+  );
 
   return (
     <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/10 flex flex-col h-full">
@@ -19,6 +17,11 @@ export default function SpinHistory({ customers }: SpinHistoryProps) {
         <CircleDot className="w-4 h-4 text-yellow-400" />
         ผลการจับฉลาก ({selected.length} ร้าน)
       </h3>
+      {selected.length === 0 ? (
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-white/30 text-xs text-center">ยังไม่มีประวัติการจับฉลาก</p>
+        </div>
+      ) : (
       <div
         className="flex-1 grid content-start"
         style={{
@@ -68,6 +71,7 @@ export default function SpinHistory({ customers }: SpinHistoryProps) {
           ))}
         </AnimatePresence>
       </div>
+      )}
     </div>
   );
 }

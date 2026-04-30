@@ -100,8 +100,6 @@ export default function SpinPage() {
     setSelectedCustomer(null);
   };
 
-  const hasHistory = customers.some((c) => c.spin_count > 0);
-
   return (
     <div className="h-screen overflow-hidden bg-gradient-to-br from-purple-950 via-purple-900 to-indigo-950 relative flex flex-col">
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -185,11 +183,9 @@ export default function SpinPage() {
           </div>
         </div>
 
-        {hasHistory && (
-          <div className="lg:w-[420px] xl:w-[500px] w-full lg:flex-none overflow-hidden">
-            <SpinHistory customers={customers} />
-          </div>
-        )}
+        <div className="lg:w-[420px] xl:w-[500px] w-full lg:flex-none overflow-hidden">
+          <SpinHistory customers={customers} />
+        </div>
       </main>
 
       <ResultToast
