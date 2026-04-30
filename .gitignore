@@ -20,3 +20,8 @@ Thumbs.db
 .vscode/
 *.suo
 *.user
+
+
+#ai
+.agents
+.claude
