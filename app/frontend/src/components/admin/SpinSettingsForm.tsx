@@ -15,6 +15,7 @@ import { toast } from "sonner";
 
 interface FormState {
   spin_duration: number;
+  wins_required: number;
   remove_after_win: boolean;
   prize_text: string;
   prize_image_url: string;
@@ -26,6 +27,7 @@ export default function SpinSettingsForm() {
 
   const [form, setForm] = useState<FormState>({
     spin_duration: 5,
+    wins_required: 2,
     remove_after_win: false,
     prize_text: "🎉 ยินดีด้วย! คุณได้รับรางวัลพิเศษ!",
     prize_image_url: "",
@@ -35,6 +37,7 @@ export default function SpinSettingsForm() {
     if (settings) {
       setForm({
         spin_duration: settings.spin_duration ?? 5,
+        wins_required: settings.wins_required ?? 2,
         remove_after_win: settings.remove_after_win ?? false,
         prize_text:
           settings.prize_text ?? "🎉 ยินดีด้วย! คุณได้รับรางวัลพิเศษ!",
@@ -49,6 +52,7 @@ export default function SpinSettingsForm() {
       {
         id: settings.id,
         spin_duration: form.spin_duration,
+        wins_required: form.wins_required,
         remove_after_win: form.remove_after_win,
         prize_text: form.prize_text || null,
         prize_image_url: form.prize_image_url || null,
@@ -110,6 +114,25 @@ export default function SpinSettingsForm() {
                 setForm((prev) => ({
                   ...prev,
                   spin_duration: Number.parseInt(e.target.value) || 5,
+                }))
+              }
+              className="border-purple-200 focus:ring-purple-500"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="wins_required" className="text-purple-800">
+              จำนวนครั้งที่ต้องหมุนเพื่อชนะ
+            </Label>
+            <Input
+              id="wins_required"
+              type="number"
+              min={1}
+              max={10}
+              value={form.wins_required}
+              onChange={(e) =>
+                setForm((prev) => ({
+                  ...prev,
+                  wins_required: Number.parseInt(e.target.value) || 2,
                 }))
               }
               className="border-purple-200 focus:ring-purple-500"

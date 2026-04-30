@@ -1,8 +1,10 @@
 # CLAUDE.md
 
 This file guides Claude Code when working in this repository.
-The goal is to **port the Base44 POC app to a fully self-controlled stack** using
-**Supabase** (PostgreSQL + Auth + Realtime) and **React 18 + Vite + TypeScript**.
+The app is a **Thai-language lucky draw wheel** (วงล้อจับฉลาก) running on
+Supabase (PostgreSQL + Auth + Storage) + React 18 + Vite + TypeScript.
+
+> The Base44 POC in `poc/` is kept as reference only. All active code lives in `app/`.
 
 ---
 
@@ -10,87 +12,54 @@ The goal is to **port the Base44 POC app to a fully self-controlled stack** usin
 
 ```
 /
-├── .claude/                  ← Claude Code config & custom commands
-├── poc/                      ← Original Base44 source (READ-ONLY reference)
-│   ├── entities/             ← Base44 schema definitions
-│   └── src/                  ← Original React source (JavaScript)
+├── .claude/
+│   └── commands/             ← Custom slash commands
+├── poc/                      ← READ-ONLY Base44 reference
 ├── app/
-│   ├── frontend/             ← React 18 + Vite + TypeScript (ported target)
-│   └── supabase/             ← Supabase local config & migrations
-│       ├── migrations/       ← SQL migration files (versioned)
-│       ├── seed.sql          ← Optional seed data
-│       └── config.toml       ← Supabase local dev config
-├── tasks/                    ← Feature/change tracking
+│   ├── frontend/             ← React 18 + Vite + TypeScript
+│   │   └── src/
+│   │       ├── components/
+│   │       │   ├── admin/    ← CustomerManager, SpinSettingForms
+│   │       │   ├── spin/     ← SlotMachine, WinnerPopup, ResultToast, SpinHistory
+│   │       │   └── ui/       ← Shadcn/ui primitives (.tsx — do not edit manually)
+│   │       ├── hooks/        ← useCustomers.ts, useSpinResults.ts, useSpinSettings.ts
+│   │       ├── lib/
+│   │       │   ├── supabase.ts       ← typed Supabase client
+│   │       │   ├── AuthContext.tsx   ← Supabase Auth context + useAuth()
+│   │       │   └── queryClient.ts
+│   │       ├── pages/
+│   │       │   ├── SpinPage.tsx      ← public
+│   │       │   └── AdminPage.tsx     ← auth-gated
+│   │       └── types/
+│   │           └── supabase.ts       ← generated — never edit manually
+│   └── supabase/
+│       ├── migrations/       ← versioned SQL migrations
+│       └── config.toml
+├── tasks/                    ← Feature tracking
 └── CLAUDE.md
 ```
-
-> ⚠️ **`poc/` is read-only reference material.** Never modify files inside `poc/`.
-> All implementation goes in `app/`.
 
 ---
 
 ## Tech Stack
 
-| Layer         | Technology                               |
-| ------------- | ---------------------------------------- |
-| Language      | **TypeScript** (strict mode)             |
-| Database      | PostgreSQL via Supabase                  |
-| Auth          | Supabase Auth                            |
-| API           | `supabase-js` client                     |
-| Realtime      | Supabase Realtime                        |
-| Frontend      | React 18 + Vite                          |
-| Server state  | React Query (`@tanstack/react-query`)    |
-| UI components | Shadcn/ui (new-york style, neutral base) |
-| Styling       | TailwindCSS                              |
-| Animation     | Framer Motion (SlotMachine)              |
+| Layer        | Technology                                                       |
+| ------------ | ---------------------------------------------------------------- |
+| Language     | TypeScript — strict mode, `moduleResolution: bundler`            |
+| Database     | PostgreSQL via Supabase                                          |
+| Auth         | Supabase Auth — email/password, **signup disabled** (admin-only) |
+| Storage      | Supabase Storage — `prize-images` bucket                         |
+| API          | `supabase-js` typed client                                       |
+| Frontend     | React 18 + Vite                                                  |
+| Forms        | `react-hook-form` + `zod`                                        |
+| Server state | React Query (`@tanstack/react-query`)                            |
+| UI           | Shadcn/ui (new-york, neutral) + TailwindCSS                      |
+| Animation    | Framer Motion (SlotMachine)                                      |
+| Toasts       | `sonner` (hardcoded `theme="light"` — no next-themes)            |
 
 ---
 
-## TypeScript Conventions
-
-- **Strict mode on** — `tsconfig.json` must have `"strict": true`
-- **No `any`** — use `unknown` and narrow, or define a proper type
-- **Database types are generated** — run `supabase gen types` after every migration (see Commands)
-- **File extensions:** `.ts` for logic/hooks, `.tsx` for components
-- **Type imports:** use `import type { Foo }` for type-only imports
-- **Supabase typed client:**
-
-```ts
-// src/lib/supabase.ts
-import { createClient } from "@supabase/supabase-js";
-import type { Database } from "@/types/supabase"; // generated
-
-export const supabase = createClient<Database>(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY,
-);
-```
-
-- **React Query hooks** are typed via the generated `Database` type, not manually:
-
-```ts
-// Good
-const { data } = await supabase.from("customers").select("*");
-// data is typed as Database['public']['Tables']['customers']['Row'][]
-
-// Alias for readability
-type Customer = Database["public"]["Tables"]["customers"]["Row"];
-```
-
----
-
-## POC App — What It Does
-
-A Thai-language lottery/raffle wheel with two pages:
-
-| Page      | Route    | Purpose                                                             |
-| --------- | -------- | ------------------------------------------------------------------- |
-| SpinPage  | `/`      | Slot-machine spin. Win triggers every 2nd spin. Shows winner popup. |
-| AdminPage | `/admin` | Configure spin settings, manage customer list.                      |
-
----
-
-## Database Schema (PostgreSQL)
+## Database Schema
 
 ### `customers`
 
@@ -117,140 +86,185 @@ created_at   timestamptz not null default now()
 ```sql
 id                uuid primary key default gen_random_uuid()
 spin_duration     integer not null default 3
+wins_required     integer not null default 2
 remove_after_win  boolean not null default false
 prize_text        text
 prize_image_url   text
 updated_at        timestamptz not null default now()
 ```
 
-> One row only in `spin_settings`. Enforce in app logic or via RLS.
+> **Singleton enforced by a PostgreSQL trigger** — only one row is ever allowed.
+> Do not insert a second row; update the existing one via the hook.
+
+### Storage
+
+- Bucket: `prize-images` (public read, authenticated write)
+- Prize image URL stored in `spin_settings.prize_image_url`
 
 ---
 
-## Porting Map — Base44 → Supabase + TypeScript
+## RLS Policies (current)
 
-### Entity calls
+| Table                 | Anon         | Authenticated |
+| --------------------- | ------------ | ------------- |
+| `customers`           | SELECT only  | Full access   |
+| `spin_results`        | INSERT only  | Full access   |
+| `spin_settings`       | SELECT only  | Full access   |
+| `prize-images` bucket | GET (public) | Upload/delete |
 
-| Base44 (`@base44/sdk`)      | Supabase (`supabase-js`)                                       |
-| --------------------------- | -------------------------------------------------------------- |
-| `Customer.list()`           | `supabase.from('customers').select('*')`                       |
-| `Customer.get(id)`          | `supabase.from('customers').select('*').eq('id', id).single()` |
-| `Customer.create(data)`     | `supabase.from('customers').insert(data).select().single()`    |
-| `Customer.update(id, data)` | `supabase.from('customers').update(data).eq('id', id)`         |
-| `Customer.delete(id)`       | `supabase.from('customers').delete().eq('id', id)`             |
+> SpinPage works fully without a login (anon). AdminPage requires auth.
 
-Same pattern for `spin_results` and `spin_settings`.
+---
 
-### Auth
+## Auth Model
 
-| Base44                           | Supabase                                                  |
-| -------------------------------- | --------------------------------------------------------- |
-| `AuthContext` + `ProtectedRoute` | `supabase.auth` + typed `AuthContext`                     |
-| `redirectToLogin()`              | `supabase.auth.signInWithPassword()` or `signInWithOtp()` |
-| `user_not_registered` error      | `session === null` check                                  |
+- **Provider:** email/password
+- **Signup:** disabled (`enable_signup = false` in `config.toml`) — admin accounts are created manually in Supabase dashboard
+- **SpinPage (`/`):** public — no auth required
+- **AdminPage (`/admin`):** wrapped in `<ProtectedRoute>` which redirects to `/login` if no session
+- **`useAuth()` exports:** `user`, `session`, `loading`, `logout`
 
-### Win Logic (preserve exactly from POC)
+---
+
+## Core Business Logic
+
+### Win condition
 
 ```ts
-const isWin = (newSpinCount: number): boolean =>
-  newSpinCount > 0 && newSpinCount % 2 === 0;
+// Lives in SpinPage; winsRequired comes from spin_settings.wins_required (default 2)
+const isWin = (newSpinCount: number, winsRequired: number): boolean =>
+  newSpinCount > 0 && newSpinCount % winsRequired === 0;
 ```
+
+### Reset all customers
+
+```ts
+// .gte workaround — Supabase requires a filter for bulk updates
+supabase
+  .from("customers")
+  .update({ spin_count: 0, is_winner: false })
+  .gte("created_at", "1970-01-01");
+```
+
+### Image upload
+
+```ts
+// Replaces Base44 Core.UploadFile — uploads to prize-images bucket
+supabase.storage.from("prize-images").upload(path, file);
+// then store the public URL in spin_settings
+```
+
+---
+
+## TypeScript Conventions
+
+- **Strict mode on** (`"strict": true` in tsconfig)
+- **`moduleResolution: bundler`** — do not add `baseUrl` (deprecated for this mode)
+- **`src/vite-env.d.ts`** must contain `/// <reference types="vite/client" />` to type `import.meta.env`
+- **No `any`** — use `unknown` and narrow, or use generated types
+- **Generated types** live in `src/types/supabase.ts` — never edit manually
+- **Type aliases for readability:**
+  ```ts
+  type Customer = Database["public"]["Tables"]["customers"]["Row"];
+  type CustomerInsert = Database["public"]["Tables"]["customers"]["Insert"];
+  type CustomerUpdate = Database["public"]["Tables"]["customers"]["Update"];
+  ```
+- **File extensions:** `.ts` for logic/hooks, `.tsx` for anything returning JSX
+- **Type-only imports:** `import type { Foo } from '...'`
+
+---
+
+## Adding a New Feature — Checklist
+
+### New database table
+
+1. `supabase migration new <name>` → write SQL in the generated file
+2. `supabase db push` to apply locally
+3. `supabase gen types --local --schema public > frontend/src/types/supabase.ts`
+4. Write typed hook in `src/hooks/use<Entity>.ts` (see existing hooks as template)
+5. Add RLS policy in the same migration
+6. Commit migration file + updated `supabase.ts` types together
+
+### New page
+
+- **Public page:** add route in `App.tsx`, no wrapper needed
+- **Auth-gated page:** wrap with `<ProtectedRoute>` in `App.tsx`
+- Keep UI labels in Thai where they appear on-screen
+
+### New form
+
+- Use `react-hook-form` + `zod` schema (see `CustomerManager` as reference)
+- Validation schema goes in the same file as the form component
+
+### New UI component
+
+- Check if Shadcn/ui has it first: `npx shadcn@latest add <component>`
+- Output goes to `src/components/ui/` — do not edit these files manually after generation
+
+---
+
+## Known Gotchas
+
+| Issue                               | Fix                                                                         |
+| ----------------------------------- | --------------------------------------------------------------------------- |
+| `sonner` needs `next-themes` in POC | Hardcode `theme="light"` — do not install next-themes                       |
+| `baseUrl` in tsconfig               | Remove it — breaks `moduleResolution: bundler`; `paths` works without it    |
+| Bulk update without a WHERE         | Use `.gte('created_at', '1970-01-01')` as a catch-all filter                |
+| `spin_settings` second row          | Never insert — always update the single existing row                        |
+| Shadcn `.jsx` → `.tsx`              | All UI primitives must be `.tsx`; `forwardRef` needs explicit generic types |
 
 ---
 
 ## Commands
 
-### Prerequisites (install once, works on macOS and Windows)
+### Prerequisites (macOS and Windows)
 
-- [Node.js](https://nodejs.org) v18+ — via installer or `nvm` / `fnm`
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) — required by Supabase local
-- [Supabase CLI](https://supabase.com/docs/guides/cli) — `npm install -g supabase`
+- [Node.js 18+](https://nodejs.org)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) — must be running for Supabase local
+- [Supabase CLI](https://supabase.com/docs/guides/cli): `npm install -g supabase`
 
 ### Frontend
 
 ```bash
 cd app/frontend
 npm install
-npm run dev        # Vite dev server → http://localhost:5173
+npm run dev          # → http://localhost:5173
 npm run build
+npm run typecheck    # tsc --noEmit — run before every commit
 npm run lint
-npm run typecheck  # tsc --noEmit
 ```
 
 ### Supabase (local)
 
 ```bash
 cd app
-supabase start                       # start local stack (requires Docker)
-supabase stop                        # stop local stack
-supabase db push                     # apply pending migrations
-supabase db reset                    # wipe + re-apply all migrations + seed
-supabase migration new <name>        # create new timestamped migration file
+supabase start                          # start local stack
+supabase stop
+supabase db push                        # apply pending migrations
+supabase db reset                       # wipe + re-apply all migrations
+supabase migration new <name>           # create new migration
 supabase gen types --local \
   --schema public \
-  > frontend/src/types/supabase.ts   # regenerate DB types after migrations
+  > frontend/src/types/supabase.ts      # regenerate after every migration
 ```
-
-> Run `supabase gen types` every time a migration is added.
-> Commit the generated `supabase.ts` types file alongside the migration.
 
 ### Environment variables
 
-Copy `.env.example` to `.env.local` and fill in values printed by `supabase start`:
+Copy `.env.example` → `.env.local` and fill in values from `supabase start` output:
 
 ```
-# app/frontend/.env.local
 VITE_SUPABASE_URL=http://127.0.0.1:54321
-VITE_SUPABASE_ANON_KEY=<anon key from supabase start output>
+VITE_SUPABASE_ANON_KEY=<from supabase start>
 ```
 
 `.env.local` is gitignored. `.env.example` is committed with placeholder values.
 
 ---
 
-## Frontend Structure (`app/frontend/src/`)
-
-```
-src/
-├── components/
-│   ├── admin/        # CustomerManager, SpinSettingForms
-│   ├── spin/         # SlotMachine, WinnerPopup, ResultToast, SpinHistory
-│   └── ui/           # Shadcn/ui primitives (copy from poc, do not edit manually)
-├── hooks/            # useCustomers.ts, useSpinResults.ts, useSpinSettings.ts
-├── lib/
-│   ├── supabase.ts   # typed Supabase client
-│   ├── AuthContext.tsx
-│   └── queryClient.ts
-├── pages/
-│   ├── SpinPage.tsx
-│   └── AdminPage.tsx
-└── types/
-    └── supabase.ts   # generated — do not edit manually
-```
-
----
-
-## Key Conventions
-
-- **UI language:** Thai — preserve all labels (วงล้อจับฉลาก, etc.)
-- **Animation:** Framer Motion in `SlotMachine.tsx` — keep as-is
-- **Shadcn/ui:** Copy primitives from `poc/src/components/ui/` into `app/frontend/src/components/ui/` — do not regenerate
-- **Path alias:** `@/` → `./src/` (configured in `vite.config.ts` and `tsconfig.json`)
-- **State:** React Query for server state, React Context for auth — no Redux/Zustand
-
----
-
-## Task Tracking
-
-All work tracked in `/tasks/`. See `/tasks/README.md` for conventions.
-Copy `/tasks/_template.md` to start a new task.
-
----
-
 ## Custom Claude Commands
 
-| Command        | Purpose                                                          |
-| -------------- | ---------------------------------------------------------------- |
-| `/port-entity` | Port a Base44 entity → migration + generated types + typed hooks |
-| `/task-status` | Summarise open tasks from `/tasks/`                              |
-| `/compare-poc` | Diff a ported component against its POC counterpart              |
+| Command        | Purpose                                                  |
+| -------------- | -------------------------------------------------------- |
+| `/port-entity` | Generate migration + types + typed hook for a new entity |
+| `/task-status` | Summarise open tasks from `/tasks/`                      |
+| `/compare-poc` | Diff a component against its original in `poc/src/`      |

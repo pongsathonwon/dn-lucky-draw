@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import type { SpinSettingsUpdate } from "@/types/supabase";
+import type { TablesUpdate } from "@/types/supabase";
+
+type SpinSettingsUpdate = TablesUpdate<"spin_settings">;
 
 const QUERY_KEY = ["spinSettings"] as const;
 

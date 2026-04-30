@@ -1,118 +1,240 @@
-// Hand-crafted types — replace with `supabase gen types --local --schema public` output
-// after running `supabase start`.
-
 export type Json =
   | string
   | number
   | boolean
   | null
   | { [key: string]: Json | undefined }
-  | Json[];
+  | Json[]
 
-export interface Database {
+export type Database = {
   public: {
     Tables: {
       customers: {
         Row: {
-          id: string;
-          name: string;
-          spin_count: number;
-          is_winner: boolean;
-          is_active: boolean;
-          created_at: string;
-        };
+          created_at: string
+          id: string
+          is_active: boolean
+          is_winner: boolean
+          name: string
+          spin_count: number
+        }
         Insert: {
-          id?: string;
-          name: string;
-          spin_count?: number;
-          is_winner?: boolean;
-          is_active?: boolean;
-          created_at?: string;
-        };
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_winner?: boolean
+          name: string
+          spin_count?: number
+        }
         Update: {
-          id?: string;
-          name?: string;
-          spin_count?: number;
-          is_winner?: boolean;
-          is_active?: boolean;
-          created_at?: string;
-        };
-        Relationships: [];
-      };
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_winner?: boolean
+          name?: string
+          spin_count?: number
+        }
+        Relationships: []
+      }
       spin_results: {
         Row: {
-          id: string;
-          customer_id: string | null;
-          outcome: "win" | "no_win";
-          created_at: string;
-        };
+          created_at: string
+          customer_id: string | null
+          id: string
+          outcome: string
+        }
         Insert: {
-          id?: string;
-          customer_id?: string | null;
-          outcome: "win" | "no_win";
-          created_at?: string;
-        };
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          outcome: string
+        }
         Update: {
-          id?: string;
-          customer_id?: string | null;
-          outcome?: "win" | "no_win";
-          created_at?: string;
-        };
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          outcome?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "spin_results_customer_id_fkey";
-            columns: ["customer_id"];
-            referencedRelation: "customers";
-            referencedColumns: ["id"];
+            foreignKeyName: "spin_results_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       spin_settings: {
         Row: {
-          id: string;
-          spin_duration: number;
-          remove_after_win: boolean;
-          prize_text: string | null;
-          prize_image_url: string | null;
-          updated_at: string;
-        };
+          id: string
+          prize_image_url: string | null
+          prize_text: string | null
+          remove_after_win: boolean
+          spin_duration: number
+          updated_at: string
+          wins_required: number
+        }
         Insert: {
-          id?: string;
-          spin_duration?: number;
-          remove_after_win?: boolean;
-          prize_text?: string | null;
-          prize_image_url?: string | null;
-          updated_at?: string;
-        };
+          id?: string
+          prize_image_url?: string | null
+          prize_text?: string | null
+          remove_after_win?: boolean
+          spin_duration?: number
+          updated_at?: string
+          wins_required?: number
+        }
         Update: {
-          id?: string;
-          spin_duration?: number;
-          remove_after_win?: boolean;
-          prize_text?: string | null;
-          prize_image_url?: string | null;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
-    };
-    Views: Record<string, never>;
-    Functions: Record<string, never>;
-    Enums: Record<string, never>;
-    CompositeTypes: Record<string, never>;
-  };
+          id?: string
+          prize_image_url?: string | null
+          prize_text?: string | null
+          remove_after_win?: boolean
+          spin_duration?: number
+          updated_at?: string
+          wins_required?: number
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
 }
 
-export type Customer = Database["public"]["Tables"]["customers"]["Row"];
-export type CustomerInsert =
-  Database["public"]["Tables"]["customers"]["Insert"];
-export type CustomerUpdate =
-  Database["public"]["Tables"]["customers"]["Update"];
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 
-export type SpinResult = Database["public"]["Tables"]["spin_results"]["Row"];
-export type SpinResultInsert =
-  Database["public"]["Tables"]["spin_results"]["Insert"];
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
-export type SpinSettings =
-  Database["public"]["Tables"]["spin_settings"]["Row"];
-export type SpinSettingsUpdate =
-  Database["public"]["Tables"]["spin_settings"]["Update"];
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+  | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+  | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+  ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+  : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+  ? R
+  : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+    DefaultSchema["Views"])
+  ? (DefaultSchema["Tables"] &
+    DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+      Row: infer R
+    }
+  ? R
+  : never
+  : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+  | keyof DefaultSchema["Tables"]
+  | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+  : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+    Insert: infer I
+  }
+  ? I
+  : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+    Insert: infer I
+  }
+  ? I
+  : never
+  : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+  | keyof DefaultSchema["Tables"]
+  | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+  : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+    Update: infer U
+  }
+  ? U
+  : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+    Update: infer U
+  }
+  ? U
+  : never
+  : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+  | keyof DefaultSchema["Enums"]
+  | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+  ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+  : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+  ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+  : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+  | keyof DefaultSchema["CompositeTypes"]
+  | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+  ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+  : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+  ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+  : never
+
+export type Customer = Tables<"customers">
+export type CustomerInsert = TablesInsert<"customers">
+export type CustomerUpdate = TablesUpdate<"customers">
+
+export const Constants = {
+  public: {
+    Enums: {},
+  },
+} as const
+

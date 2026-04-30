@@ -15,8 +15,10 @@ import SpinHistory from "@/components/spin/SpinHistory";
 import WinnerPopup from "@/components/spin/WinnerPopup";
 import ResultToast from "@/components/spin/ResultToast";
 
-const isWin = (newSpinCount: number): boolean =>
-  newSpinCount > 0 && newSpinCount % 2 === 0;
+const isWin = (newSpinCount: number, winsRequired: number): boolean =>
+  newSpinCount > 0 && newSpinCount % winsRequired === 0;
+
+const WINNER_POPUP_DELAY = 1000;
 
 export default function SpinPage() {
   const [isSpinning, setIsSpinning] = useState(false);
@@ -57,7 +59,7 @@ export default function SpinPage() {
     if (!winner) return;
 
     const newSpinCount = (winner.spin_count ?? 0) + 1;
-    const winner_ = isWin(newSpinCount);
+    const winner_ = isWin(newSpinCount, settings?.wins_required ?? 2);
 
     try {
       await updateCustomer.mutateAsync({
@@ -88,7 +90,7 @@ export default function SpinPage() {
     setShowResultToast(true);
 
     if (winner_) {
-      setTimeout(() => setShowWinnerPopup(true), 2200);
+      setTimeout(() => setShowWinnerPopup(true), WINNER_POPUP_DELAY);
     }
   };
 

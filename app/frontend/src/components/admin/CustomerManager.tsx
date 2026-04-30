@@ -17,7 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Users, Plus, Trash2, Trophy, Upload } from "lucide-react";
+import { Users, Plus, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import CustomerList from "./CustomerList";
 import CustomerListItem from "./CustomerListItem";
