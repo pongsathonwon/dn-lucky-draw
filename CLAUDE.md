@@ -19,10 +19,10 @@ Supabase (PostgreSQL + Auth + Storage) + React 18 + Vite + TypeScript.
 │   ├── frontend/             ← React 18 + Vite + TypeScript
 │   │   └── src/
 │   │       ├── components/
-│   │       │   ├── admin/    ← CustomerManager, SpinSettingForms
+│   │       │   ├── admin/    ← CustomerManager, SpinSettingsForm, PrizeManager
 │   │       │   ├── spin/     ← SlotMachine, WinnerPopup, ResultToast, SpinHistory
 │   │       │   └── ui/       ← Shadcn/ui primitives (.tsx — do not edit manually)
-│   │       ├── hooks/        ← useCustomers.ts, useSpinResults.ts, useSpinSettings.ts
+│   │       ├── hooks/        ← useCustomers.ts, useSpinResults.ts, useSpinSettings.ts, usePrizes.ts
 │   │       ├── lib/
 │   │       │   ├── supabase.ts       ← typed Supabase client
 │   │       │   ├── AuthContext.tsx   ← Supabase Auth context + useAuth()
@@ -81,15 +81,33 @@ outcome      text not null   -- 'win' | 'no_win'
 created_at   timestamptz not null default now()
 ```
 
+### `prizes`
+
+```sql
+id                  uuid primary key default gen_random_uuid()
+name                text not null
+description         text                           -- shown in WinnerPopup
+image_url           text                           -- prize-images bucket
+wins_required       integer not null default 1     -- spins needed per win
+remove_after_win    boolean not null default false
+is_won              boolean not null default false
+winner_customer_id  uuid references customers(id) on delete set null
+is_selected         boolean not null default false -- only one true at a time
+created_at          timestamptz not null default now()
+```
+
+> **At most one selected prize** enforced by a partial unique index:
+> `create unique index prizes_one_selected on prizes (is_selected) where is_selected = true`
+>
+> `wins_required` and `remove_after_win` **moved here from `spin_settings`** in migration `20260503000000`.
+
 ### `spin_settings`
 
 ```sql
 id                uuid primary key default gen_random_uuid()
 spin_duration     integer not null default 3
-wins_required     integer not null default 2
-remove_after_win  boolean not null default false
-prize_text        text
-prize_image_url   text
+prize_text        text                           -- fallback when no prize selected
+prize_image_url   text                           -- fallback image
 updated_at        timestamptz not null default now()
 ```
 
@@ -99,7 +117,7 @@ updated_at        timestamptz not null default now()
 ### Storage
 
 - Bucket: `prize-images` (public read, authenticated write)
-- Prize image URL stored in `spin_settings.prize_image_url`
+- Prize images stored per-prize in `prizes.image_url`; fallback in `spin_settings.prize_image_url`
 
 ---
 
@@ -110,6 +128,7 @@ updated_at        timestamptz not null default now()
 | `customers`           | SELECT only  | Full access   |
 | `spin_results`        | INSERT only  | Full access   |
 | `spin_settings`       | SELECT only  | Full access   |
+| `prizes`              | SELECT only  | Full access   |
 | `prize-images` bucket | GET (public) | Upload/delete |
 
 > SpinPage works fully without a login (anon). AdminPage requires auth.
@@ -131,7 +150,7 @@ updated_at        timestamptz not null default now()
 ### Win condition
 
 ```ts
-// Lives in SpinPage; winsRequired comes from spin_settings.wins_required (default 2)
+// Lives in SpinPage; winsRequired comes from the selected prize (default 1 when no prize selected)
 const isWin = (newSpinCount: number, winsRequired: number): boolean =>
   newSpinCount > 0 && newSpinCount % winsRequired === 0;
 ```
@@ -146,12 +165,36 @@ supabase
   .gte("created_at", "1970-01-01");
 ```
 
+### Active prize
+
+```ts
+// SpinPage queries the selected prize; falls back to safe defaults when none selected
+const { data: activePrize } = useQuery({ queryFn: () =>
+  supabase.from("prizes").select("*").eq("is_selected", true).maybeSingle()
+});
+const winsRequired = activePrize?.wins_required ?? 1;
+```
+
+### On win — stamp the prize
+
+```ts
+supabase.from("prizes")
+  .update({ is_won: true, winner_customer_id: winner.id, is_selected: false })
+  .eq("id", activePrize.id);
+// After this activePrize becomes null — admin must pick next prize
+```
+
+### Selecting a new prize (useSelectPrize)
+
+1. Clear `is_selected` on all prizes (`.gte('created_at','1970-01-01')`)
+2. Set `is_selected = true` on the chosen prize
+3. Reset all customers (`spin_count=0, is_winner=false, is_active=true`)
+
 ### Image upload
 
 ```ts
-// Replaces Base44 Core.UploadFile — uploads to prize-images bucket
+// Uploads to prize-images bucket; store public URL in prizes.image_url
 supabase.storage.from("prize-images").upload(path, file);
-// then store the public URL in spin_settings
 ```
 
 ---
@@ -211,7 +254,8 @@ supabase.storage.from("prize-images").upload(path, file);
 | `baseUrl` in tsconfig               | Remove it — breaks `moduleResolution: bundler`; `paths` works without it    |
 | Bulk update without a WHERE         | Use `.gte('created_at', '1970-01-01')` as a catch-all filter                |
 | `spin_settings` second row          | Never insert — always update the single existing row                        |
-| Shadcn `.jsx` → `.tsx`              | All UI primitives must be `.tsx`; `forwardRef` needs explicit generic types |
+| Shadcn `.jsx` → `.tsx`              | All UI primitives must be `.tsx`; `forwardRef` needs explicit generic types  |
+| Shadcn UI components need prop types | Components like `Badge`, `DialogHeader`, `AlertDialogHeader` need explicit TypeScript interfaces/parameter types — untyped `forwardRef` or plain function params infer poorly for strict-mode callers |
 
 ---
 

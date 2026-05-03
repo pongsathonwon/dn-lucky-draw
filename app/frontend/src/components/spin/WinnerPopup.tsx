@@ -8,6 +8,7 @@ interface WinnerPopupProps {
   isOpen: boolean;
   onClose: () => void;
   customerName: string | undefined;
+  prizeName?: string;
   prizeText: string | null | undefined;
   prizeImageUrl: string | null | undefined;
 }
@@ -16,6 +17,7 @@ export default function WinnerPopup({
   isOpen,
   onClose,
   customerName,
+  prizeName,
   prizeText,
   prizeImageUrl,
 }: WinnerPopupProps) {
@@ -100,11 +102,22 @@ export default function WinnerPopup({
               </p>
             </motion.div>
 
+            {prizeName && (
+              <motion.p
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.6 }}
+                className="text-white font-bold text-2xl mt-4"
+              >
+                {prizeName}
+              </motion.p>
+            )}
+
             <motion.p
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.6 }}
-              className="text-white/90 text-lg mt-4 leading-relaxed"
+              transition={{ delay: prizeName ? 0.75 : 0.6 }}
+              className="text-white/90 text-lg mt-2 leading-relaxed"
             >
               {prizeText ?? "🎉 ได้รับรางวัลพิเศษ!"}
             </motion.p>

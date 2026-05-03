@@ -7,7 +7,6 @@ import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Settings, Save } from "lucide-react";
@@ -15,8 +14,6 @@ import { toast } from "sonner";
 
 interface FormState {
   spin_duration: number;
-  wins_required: number;
-  remove_after_win: boolean;
   prize_text: string;
   prize_image_url: string;
 }
@@ -27,8 +24,6 @@ export default function SpinSettingsForm() {
 
   const [form, setForm] = useState<FormState>({
     spin_duration: 5,
-    wins_required: 2,
-    remove_after_win: false,
     prize_text: "🎉 ยินดีด้วย! คุณได้รับรางวัลพิเศษ!",
     prize_image_url: "",
   });
@@ -37,8 +32,6 @@ export default function SpinSettingsForm() {
     if (settings) {
       setForm({
         spin_duration: settings.spin_duration ?? 5,
-        wins_required: settings.wins_required ?? 2,
-        remove_after_win: settings.remove_after_win ?? false,
         prize_text:
           settings.prize_text ?? "🎉 ยินดีด้วย! คุณได้รับรางวัลพิเศษ!",
         prize_image_url: settings.prize_image_url ?? "",
@@ -52,8 +45,6 @@ export default function SpinSettingsForm() {
       {
         id: settings.id,
         spin_duration: form.spin_duration,
-        wins_required: form.wins_required,
-        remove_after_win: form.remove_after_win,
         prize_text: form.prize_text || null,
         prize_image_url: form.prize_image_url || null,
       },
@@ -99,64 +90,29 @@ export default function SpinSettingsForm() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <Label htmlFor="duration" className="text-purple-800">
-              ระยะเวลาหมุน (วินาที)
-            </Label>
-            <Input
-              id="duration"
-              type="number"
-              min={1}
-              max={30}
-              value={form.spin_duration}
-              onChange={(e) =>
-                setForm((prev) => ({
-                  ...prev,
-                  spin_duration: Number.parseInt(e.target.value) || 5,
-                }))
-              }
-              className="border-purple-200 focus:ring-purple-500"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="wins_required" className="text-purple-800">
-              จำนวนครั้งที่ต้องหมุนเพื่อชนะ
-            </Label>
-            <Input
-              id="wins_required"
-              type="number"
-              min={1}
-              max={10}
-              value={form.wins_required}
-              onChange={(e) =>
-                setForm((prev) => ({
-                  ...prev,
-                  wins_required: Number.parseInt(e.target.value) || 2,
-                }))
-              }
-              className="border-purple-200 focus:ring-purple-500"
-            />
-          </div>
-          <div className="flex items-center justify-between p-4 bg-purple-50 rounded-xl">
-            <div>
-              <Label className="text-purple-800">คัดออกหลังชนะ</Label>
-              <p className="text-xs text-purple-500 mt-1">
-                เอาชื่อออกจากวงล้อหลังได้รางวัล
-              </p>
-            </div>
-            <Switch
-              checked={form.remove_after_win}
-              onCheckedChange={(v) =>
-                setForm((prev) => ({ ...prev, remove_after_win: v }))
-              }
-            />
-          </div>
+        <div className="space-y-2">
+          <Label htmlFor="duration" className="text-purple-800">
+            ระยะเวลาหมุน (วินาที)
+          </Label>
+          <Input
+            id="duration"
+            type="number"
+            min={1}
+            max={30}
+            value={form.spin_duration}
+            onChange={(e) =>
+              setForm((prev) => ({
+                ...prev,
+                spin_duration: Number.parseInt(e.target.value) || 5,
+              }))
+            }
+            className="border-purple-200 focus:ring-purple-500 max-w-xs"
+          />
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="prize" className="text-purple-800">
-            ข้อความรางวัล (แสดงใน Popup)
+            ข้อความรางวัลเริ่มต้น (แสดงใน Popup เมื่อไม่มีรางวัลที่เลือก)
           </Label>
           <Textarea
             id="prize"
@@ -170,7 +126,7 @@ export default function SpinSettingsForm() {
         </div>
 
         <div className="space-y-2">
-          <Label className="text-purple-800">รูปรางวัล (ไม่จำเป็น)</Label>
+          <Label className="text-purple-800">รูปรางวัลเริ่มต้น (ไม่จำเป็น)</Label>
           <div className="flex items-center gap-4">
             <Input
               type="file"

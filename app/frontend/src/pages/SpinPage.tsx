@@ -6,6 +6,8 @@ import {
 } from "@/hooks/useCustomers";
 import { useSpinSettings } from "@/hooks/useSpinSettings";
 import { useCreateSpinResult } from "@/hooks/useSpinResults";
+import { supabase } from "@/lib/supabase";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Customer } from "@/types/supabase";
 import { Button } from "@/components/ui/button";
 import { Play, RotateCcw, Settings } from "lucide-react";
@@ -20,6 +22,21 @@ const isWin = (newSpinCount: number, winsRequired: number): boolean =>
 
 const WINNER_POPUP_DELAY = 1000;
 
+function useActivePrize() {
+  return useQuery({
+    queryKey: ["activePrize"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("prizes")
+        .select("*")
+        .eq("is_selected", true)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
 export default function SpinPage() {
   const [isSpinning, setIsSpinning] = useState(false);
   const [winnerIndex, setWinnerIndex] = useState<number | null>(null);
@@ -32,13 +49,17 @@ export default function SpinPage() {
 
   const { data: customers = [] } = useCustomers();
   const { data: settings } = useSpinSettings();
+  const { data: activePrize } = useActivePrize();
   const updateCustomer = useUpdateCustomer();
   const createResult = useCreateSpinResult();
   const resetAll = useResetAllCustomers();
+  const queryClient = useQueryClient();
+
+  const winsRequired = activePrize?.wins_required ?? 1;
+  const removeAfterWin = activePrize?.remove_after_win ?? false;
 
   const effectiveSettings = settings ?? {
     spin_duration: 5,
-    remove_after_win: false,
     prize_text: "🎉 ได้รับรางวัลพิเศษ!",
     prize_image_url: null,
   };
@@ -59,7 +80,7 @@ export default function SpinPage() {
     if (!winner) return;
 
     const newSpinCount = (winner.spin_count ?? 0) + 1;
-    const winner_ = isWin(newSpinCount, settings?.wins_required ?? 2);
+    const winner_ = isWin(newSpinCount, winsRequired);
 
     try {
       await updateCustomer.mutateAsync({
@@ -67,9 +88,7 @@ export default function SpinPage() {
         data: {
           spin_count: newSpinCount,
           is_winner: winner_,
-          ...(winner_ && effectiveSettings.remove_after_win
-            ? { is_active: false }
-            : {}),
+          ...(winner_ && removeAfterWin ? { is_active: false } : {}),
         },
       });
 
@@ -77,6 +96,19 @@ export default function SpinPage() {
         customer_id: winner.id,
         outcome: winner_ ? "win" : "no_win",
       });
+
+      if (winner_ && activePrize) {
+        await supabase
+          .from("prizes")
+          .update({
+            is_won: true,
+            winner_customer_id: winner.id,
+            is_selected: false,
+          })
+          .eq("id", activePrize.id);
+        queryClient.invalidateQueries({ queryKey: ["activePrize"] });
+        queryClient.invalidateQueries({ queryKey: ["prizes"] });
+      }
     } catch {
       // silently continue — UI update may still be shown
     }
@@ -127,6 +159,11 @@ export default function SpinPage() {
           <h1 className="text-white/90 font-bold text-lg md:text-2xl hidden sm:block">
             วงล้อจับฉลาก
           </h1>
+          {activePrize && (
+            <span className="hidden sm:block text-yellow-300 text-sm font-medium bg-yellow-400/10 px-3 py-1 rounded-full border border-yellow-400/20">
+              รางวัล: {activePrize.name}
+            </span>
+          )}
           <Link to="/admin">
             <Button
               variant="ghost"
@@ -199,8 +236,9 @@ export default function SpinPage() {
         isOpen={showWinnerPopup}
         onClose={() => setShowWinnerPopup(false)}
         customerName={selectedCustomer?.name}
-        prizeText={effectiveSettings.prize_text}
-        prizeImageUrl={effectiveSettings.prize_image_url}
+        prizeName={activePrize?.name}
+        prizeText={activePrize?.description ?? effectiveSettings.prize_text}
+        prizeImageUrl={activePrize?.image_url ?? effectiveSettings.prize_image_url}
       />
     </div>
   );

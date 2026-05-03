@@ -3,6 +3,7 @@ import { useAuth } from "@/lib/AuthContext";
 import AdminLoginForm from "@/components/admin/AdminLoginForm";
 import SpinSettingsForm from "@/components/admin/SpinSettingsForm";
 import CustomerManager from "@/components/admin/CustomerManager";
+import PrizeManager from "@/components/admin/PrizeManager";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, LogOut } from "lucide-react";
 
@@ -55,6 +56,7 @@ export default function AdminPage() {
       </header>
 
       <main className="max-w-5xl mx-auto px-4 md:px-8 py-8 space-y-8">
+        <PrizeManager />
         <SpinSettingsForm />
         <CustomerManager />
       </main>
