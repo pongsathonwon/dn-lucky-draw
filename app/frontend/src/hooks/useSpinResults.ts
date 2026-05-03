@@ -21,14 +21,16 @@ export function useCreateSpinResult() {
   return useMutation({
     mutationFn: async ({
       customer_id,
+      prize_id,
       outcome,
     }: {
       customer_id: string;
+      prize_id?: string | null;
       outcome: "win" | "no_win";
     }) => {
       const { data, error } = await supabase
         .from("spin_results")
-        .insert({ customer_id, outcome })
+        .insert({ customer_id, prize_id: prize_id ?? null, outcome })
         .select()
         .single();
       if (error) throw error;

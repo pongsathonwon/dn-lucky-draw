@@ -71,7 +71,7 @@ export function useResetAllCustomers() {
     mutationFn: async () => {
       const { error } = await supabase
         .from("customers")
-        .update({ spin_count: 0, is_winner: false, is_active: true })
+        .update({ is_winner: false, is_active: true })
         .gte("created_at", "1970-01-01");
       if (error) throw error;
     },

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams, Link } from "react-router-dom";
 import {
   useCustomers,
   useUpdateCustomer,
@@ -6,12 +7,13 @@ import {
 } from "@/hooks/useCustomers";
 import { useSpinSettings } from "@/hooks/useSpinSettings";
 import { useCreateSpinResult } from "@/hooks/useSpinResults";
+import { usePrizes } from "@/hooks/usePrizes";
+import { useUpsertPrizeSpin } from "@/hooks/useCustomerPrizeSpins";
 import { supabase } from "@/lib/supabase";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Customer } from "@/types/supabase";
+import type { Customer, Prize } from "@/types/supabase";
 import { Button } from "@/components/ui/button";
 import { Play, RotateCcw, Settings } from "lucide-react";
-import { Link } from "react-router-dom";
 import SlotMachine from "@/components/spin/SlotMachine";
 import SpinHistory from "@/components/spin/SpinHistory";
 import WinnerPopup from "@/components/spin/WinnerPopup";
@@ -22,7 +24,23 @@ const isWin = (newSpinCount: number, winsRequired: number): boolean =>
 
 const WINNER_POPUP_DELAY = 1000;
 
-function useActivePrize() {
+function usePrizeById(prizeId: string | null) {
+  return useQuery({
+    queryKey: ["prize", prizeId],
+    enabled: !!prizeId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("prizes")
+        .select("*")
+        .eq("id", prizeId as string)
+        .maybeSingle();
+      if (error) throw error;
+      return data as Prize | null;
+    },
+  });
+}
+
+function useFallbackActivePrize() {
   return useQuery({
     queryKey: ["activePrize"],
     queryFn: async () => {
@@ -32,7 +50,7 @@ function useActivePrize() {
         .eq("is_selected", true)
         .maybeSingle();
       if (error) throw error;
-      return data;
+      return data as Prize | null;
     },
   });
 }
@@ -42,17 +60,24 @@ export default function SpinPage() {
   const [winnerIndex, setWinnerIndex] = useState<number | null>(null);
   const [showWinnerPopup, setShowWinnerPopup] = useState(false);
   const [showResultToast, setShowResultToast] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
-    null,
-  );
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [lastSpinCount, setLastSpinCount] = useState(0);
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const prizeParam = searchParams.get("prize");
 
   const { data: customers = [] } = useCustomers();
   const { data: settings } = useSpinSettings();
-  const { data: activePrize } = useActivePrize();
+  const { data: prizes = [] } = usePrizes();
+  const { data: prizeById } = usePrizeById(prizeParam);
+  const { data: fallbackPrize } = useFallbackActivePrize();
+
+  const activePrize = prizeParam ? prizeById : fallbackPrize;
+
   const updateCustomer = useUpdateCustomer();
   const createResult = useCreateSpinResult();
   const resetAll = useResetAllCustomers();
+  const upsertPrizeSpin = useUpsertPrizeSpin();
   const queryClient = useQueryClient();
 
   const winsRequired = activePrize?.wins_required ?? 1;
@@ -64,7 +89,13 @@ export default function SpinPage() {
     prize_image_url: null,
   };
 
+  const prizeWon = activePrize?.is_won ?? false;
+
   const activeCustomers = customers.filter((c) => c.is_active !== false);
+
+  const handlePrizeSelect = (id: string) => {
+    setSearchParams(id ? { prize: id } : {});
+  };
 
   const handleSpin = () => {
     if (isSpinning || activeCustomers.length === 0) return;
@@ -79,14 +110,21 @@ export default function SpinPage() {
     const winner = activeCustomers[winnerIndex];
     if (!winner) return;
 
-    const newSpinCount = (winner.spin_count ?? 0) + 1;
-    const winner_ = isWin(newSpinCount, winsRequired);
+    let newSpinCount = 1;
 
     try {
+      if (activePrize) {
+        newSpinCount = await upsertPrizeSpin.mutateAsync({
+          customer_id: winner.id,
+          prize_id: activePrize.id,
+        });
+      }
+
+      const winner_ = isWin(newSpinCount, winsRequired);
+
       await updateCustomer.mutateAsync({
         id: winner.id,
         data: {
-          spin_count: newSpinCount,
           is_winner: winner_,
           ...(winner_ && removeAfterWin ? { is_active: false } : {}),
         },
@@ -94,6 +132,7 @@ export default function SpinPage() {
 
       await createResult.mutateAsync({
         customer_id: winner.id,
+        prize_id: activePrize?.id ?? null,
         outcome: winner_ ? "win" : "no_win",
       });
 
@@ -107,22 +146,19 @@ export default function SpinPage() {
           })
           .eq("id", activePrize.id);
         queryClient.invalidateQueries({ queryKey: ["activePrize"] });
+        queryClient.invalidateQueries({ queryKey: ["prize", activePrize.id] });
         queryClient.invalidateQueries({ queryKey: ["prizes"] });
+      }
+
+      setSelectedCustomer({ ...winner, is_winner: winner_ });
+      setLastSpinCount(newSpinCount);
+      setShowResultToast(true);
+
+      if (winner_) {
+        setTimeout(() => setShowWinnerPopup(true), WINNER_POPUP_DELAY);
       }
     } catch {
       // silently continue — UI update may still be shown
-    }
-
-    setSelectedCustomer({
-      ...winner,
-      spin_count: newSpinCount,
-      is_winner: winner_,
-    });
-    setLastSpinCount(newSpinCount);
-    setShowResultToast(true);
-
-    if (winner_) {
-      setTimeout(() => setShowWinnerPopup(true), WINNER_POPUP_DELAY);
     }
   };
 
@@ -159,11 +195,22 @@ export default function SpinPage() {
           <h1 className="text-white/90 font-bold text-lg md:text-2xl hidden sm:block">
             วงล้อจับฉลาก
           </h1>
-          {activePrize && (
-            <span className="hidden sm:block text-yellow-300 text-sm font-medium bg-yellow-400/10 px-3 py-1 rounded-full border border-yellow-400/20">
-              รางวัล: {activePrize.name}
-            </span>
-          )}
+
+          <select
+            value={activePrize?.id ?? ""}
+            onChange={(e) => handlePrizeSelect(e.target.value)}
+            className="hidden sm:block w-44 h-8 rounded-md bg-white/10 border border-white/20 text-white text-sm px-2 focus:outline-none focus:ring-1 focus:ring-white/30"
+          >
+            <option value="" disabled className="bg-purple-950">
+              เลือกรางวัล
+            </option>
+            {prizes.map((p) => (
+              <option key={p.id} value={p.id} className="bg-purple-950">
+                {p.is_won ? `✓ ${p.name}` : p.name}
+              </option>
+            ))}
+          </select>
+
           <Link to="/admin">
             <Button
               variant="ghost"
@@ -202,7 +249,7 @@ export default function SpinPage() {
           <div className="flex gap-3">
             <Button
               onClick={handleSpin}
-              disabled={isSpinning || activeCustomers.length === 0}
+              disabled={isSpinning || activeCustomers.length === 0 || prizeWon}
               className="bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-purple-950 font-bold text-base px-8 py-5 rounded-2xl shadow-lg shadow-yellow-500/20 disabled:opacity-50"
             >
               <Play className="w-5 h-5 mr-2" />
@@ -221,7 +268,7 @@ export default function SpinPage() {
         </div>
 
         <div className="lg:w-[420px] xl:w-[500px] w-full lg:flex-none overflow-hidden">
-          <SpinHistory customers={customers} />
+          <SpinHistory prizeId={activePrize?.id ?? null} winsRequired={winsRequired} customers={customers} />
         </div>
       </main>
 

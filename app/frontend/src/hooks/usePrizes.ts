@@ -83,10 +83,10 @@ export function useSelectPrize() {
         .eq("id", id);
       if (selectError) throw selectError;
 
-      // Reset all customers
+      // Reset customer win/active flags (spin history is preserved in customer_prize_spins)
       const { error: resetError } = await supabase
         .from("customers")
-        .update({ spin_count: 0, is_winner: false, is_active: true })
+        .update({ is_winner: false, is_active: true })
         .gte("created_at", "1970-01-01");
       if (resetError) throw resetError;
     },

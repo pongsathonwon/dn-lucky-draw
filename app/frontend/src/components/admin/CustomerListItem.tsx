@@ -1,6 +1,5 @@
 import { Database } from "@/types/supabase";
 import { Trophy } from "lucide-react";
-import { Badge } from "../ui/badge";
 import { PropsWithChildren } from "react";
 
 type CustomerListItemProps = {
@@ -30,14 +29,6 @@ function CustomerListItem({
         </span>
         {customer.is_winner && (
           <Trophy className="w-4 h-4 text-yellow-500 shrink-0" />
-        )}
-        {customer.spin_count > 0 && (
-          <Badge
-            variant="secondary"
-            className="text-xs shrink-0 text-purple-600"
-          >
-            {customer.spin_count} รอบ
-          </Badge>
         )}
       </div>
       {children}

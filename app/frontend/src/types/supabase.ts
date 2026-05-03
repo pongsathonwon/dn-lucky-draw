@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -9,6 +9,48 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      customer_prize_spins: {
+        Row: {
+          created_at: string
+          customer_id: string
+          id: string
+          prize_id: string
+          spin_count: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          id?: string
+          prize_id: string
+          spin_count?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          id?: string
+          prize_id?: string
+          spin_count?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_prize_spins_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_prize_spins_prize_id_fkey"
+            columns: ["prize_id"]
+            isOneToOne: false
+            referencedRelation: "prizes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           created_at: string
@@ -16,7 +58,6 @@ export type Database = {
           is_active: boolean
           is_winner: boolean
           name: string
-          spin_count: number
         }
         Insert: {
           created_at?: string
@@ -24,7 +65,6 @@ export type Database = {
           is_active?: boolean
           is_winner?: boolean
           name: string
-          spin_count?: number
         }
         Update: {
           created_at?: string
@@ -32,7 +72,6 @@ export type Database = {
           is_active?: boolean
           is_winner?: boolean
           name?: string
-          spin_count?: number
         }
         Relationships: []
       }
@@ -89,18 +128,21 @@ export type Database = {
           customer_id: string | null
           id: string
           outcome: string
+          prize_id: string | null
         }
         Insert: {
           created_at?: string
           customer_id?: string | null
           id?: string
           outcome: string
+          prize_id?: string | null
         }
         Update: {
           created_at?: string
           customer_id?: string | null
           id?: string
           outcome?: string
+          prize_id?: string | null
         }
         Relationships: [
           {
@@ -108,6 +150,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spin_results_prize_id_fkey"
+            columns: ["prize_id"]
+            isOneToOne: false
+            referencedRelation: "prizes"
             referencedColumns: ["id"]
           },
         ]
@@ -141,7 +190,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      increment_prize_spin: {
+        Args: { p_customer_id: string; p_prize_id: string }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never
@@ -275,7 +327,11 @@ export const Constants = {
   },
 } as const
 
-
+// Convenience aliases
 export type Customer = Tables<"customers">
 export type CustomerInsert = TablesInsert<"customers">
 export type CustomerUpdate = TablesUpdate<"customers">
+export type Prize = Tables<"prizes">
+export type SpinResult = Tables<"spin_results">
+export type CustomerPrizeSpin = Tables<"customer_prize_spins">
+
