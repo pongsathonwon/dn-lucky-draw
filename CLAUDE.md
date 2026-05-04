@@ -300,7 +300,7 @@ Copy `.env.example` → `.env.local` and fill in values from `supabase start` ou
 
 ```
 VITE_SUPABASE_URL=http://127.0.0.1:54321
-VITE_SUPABASE_ANON_KEY=<from supabase start>
+VITE_SUPABASE_PUBLISHABLE_KEY=<from supabase start>
 ```
 
 `.env.local` is gitignored. `.env.example` is committed with placeholder values.
