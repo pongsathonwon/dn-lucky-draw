@@ -36,3 +36,4 @@ TASK-<NNN>-<short-slug>.md
 | TASK-005   | Per-prize spin tracking + prize selector on SpinPage | done   | supabase, migration, frontend, ui                       |
 | TASK-006   | Remove server-side is_selected from prizes           | done   | supabase, migration, frontend, chore                    |
 | TASK-007   | Soft delete for prizes and customers                 | done   | supabase, migration, frontend                           |
+| TASK-008   | Reset button clears current prize winner and spins   | done   | frontend, ui                                            |

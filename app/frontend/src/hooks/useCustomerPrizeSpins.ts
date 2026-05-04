@@ -21,6 +21,22 @@ export function useCustomerPrizeSpins(prizeId: string | null | undefined) {
   });
 }
 
+export function useDeletePrizeSpins() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (prizeId: string) => {
+      const { error } = await supabase
+        .from("customer_prize_spins")
+        .delete()
+        .eq("prize_id", prizeId);
+      if (error) throw error;
+    },
+    onSuccess: (_data, prizeId) => {
+      queryClient.invalidateQueries({ queryKey: queryKey(prizeId) });
+    },
+  });
+}
+
 export function useUpsertPrizeSpin() {
   const queryClient = useQueryClient();
   return useMutation({

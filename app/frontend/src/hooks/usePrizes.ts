@@ -69,6 +69,23 @@ export function useDeletePrize() {
   });
 }
 
+export function useResetPrize() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("prizes")
+        .update({ is_won: false, winner_customer_id: null })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_data, id) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ["prize", id] });
+    },
+  });
+}
+
 export function useSelectPrize() {
   const queryClient = useQueryClient();
   return useMutation({

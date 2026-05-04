@@ -7,8 +7,8 @@ import {
 } from "@/hooks/useCustomers";
 import { useSpinSettings } from "@/hooks/useSpinSettings";
 import { useCreateSpinResult } from "@/hooks/useSpinResults";
-import { usePrizes } from "@/hooks/usePrizes";
-import { useUpsertPrizeSpin } from "@/hooks/useCustomerPrizeSpins";
+import { usePrizes, useResetPrize } from "@/hooks/usePrizes";
+import { useUpsertPrizeSpin, useDeletePrizeSpins } from "@/hooks/useCustomerPrizeSpins";
 import { supabase } from "@/lib/supabase";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Customer, Prize } from "@/types/supabase";
@@ -61,6 +61,8 @@ export default function SpinPage() {
   const updateCustomer = useUpdateCustomer();
   const createResult = useCreateSpinResult();
   const resetAll = useResetAllCustomers();
+  const resetPrize = useResetPrize();
+  const deletePrizeSpins = useDeletePrizeSpins();
   const upsertPrizeSpin = useUpsertPrizeSpin();
   const queryClient = useQueryClient();
 
@@ -144,6 +146,12 @@ export default function SpinPage() {
   const handleReset = async () => {
     if (isSpinning) return;
     await resetAll.mutateAsync();
+    if (activePrize) {
+      await Promise.all([
+        resetPrize.mutateAsync(activePrize.id),
+        deletePrizeSpins.mutateAsync(activePrize.id),
+      ]);
+    }
     setSelectedCustomer(null);
   };
 
