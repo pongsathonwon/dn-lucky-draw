@@ -11,6 +11,7 @@ export function useCustomers() {
       const { data, error } = await supabase
         .from("customers")
         .select("*")
+        .is("deleted_at", null)
         .order("created_at", { ascending: true });
       if (error) throw error;
       return data;
@@ -57,7 +58,7 @@ export function useDeleteCustomer() {
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from("customers")
-        .delete()
+        .update({ deleted_at: new Date().toISOString() })
         .eq("id", id);
       if (error) throw error;
     },
@@ -72,7 +73,8 @@ export function useResetAllCustomers() {
       const { error } = await supabase
         .from("customers")
         .update({ is_winner: false, is_active: true })
-        .gte("created_at", "1970-01-01");
+        .gte("created_at", "1970-01-01")
+        .is("deleted_at", null);
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEY }),

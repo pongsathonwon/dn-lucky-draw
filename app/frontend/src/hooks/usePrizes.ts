@@ -14,6 +14,7 @@ export function usePrizes() {
       const { data, error } = await supabase
         .from("prizes")
         .select("*, customers(name)")
+        .is("deleted_at", null)
         .order("created_at", { ascending: true });
       if (error) throw error;
       return data;
@@ -58,7 +59,10 @@ export function useDeletePrize() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("prizes").delete().eq("id", id);
+      const { error } = await supabase
+        .from("prizes")
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEY }),
@@ -68,26 +72,13 @@ export function useDeletePrize() {
 export function useSelectPrize() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      // Clear is_selected on all prizes
-      const { error: clearError } = await supabase
-        .from("prizes")
-        .update({ is_selected: false })
-        .gte("created_at", "1970-01-01");
-      if (clearError) throw clearError;
-
-      // Select the chosen prize
-      const { error: selectError } = await supabase
-        .from("prizes")
-        .update({ is_selected: true })
-        .eq("id", id);
-      if (selectError) throw selectError;
-
+    mutationFn: async (_id: string) => {
       // Reset customer win/active flags (spin history is preserved in customer_prize_spins)
       const { error: resetError } = await supabase
         .from("customers")
         .update({ is_winner: false, is_active: true })
-        .gte("created_at", "1970-01-01");
+        .gte("created_at", "1970-01-01")
+        .is("deleted_at", null);
       if (resetError) throw resetError;
     },
     onSuccess: () => {

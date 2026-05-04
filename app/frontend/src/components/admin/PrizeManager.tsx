@@ -34,7 +34,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Gift, Plus, Pencil, Trash2, CheckCircle2, Trophy } from "lucide-react";
+import { Gift, Plus, Pencil, Trash2, Trophy } from "lucide-react";
 import { toast } from "sonner";
 import type { Tables } from "@/types/supabase";
 
@@ -331,11 +331,7 @@ export default function PrizeManager() {
         {(prizes as PrizeWithWinner[]).map((prize) => (
           <div
             key={prize.id}
-            className={`relative rounded-xl border p-4 transition-colors ${
-              prize.is_selected
-                ? "border-purple-500 bg-purple-50"
-                : "border-purple-100 bg-white"
-            }`}
+            className="relative rounded-xl border border-purple-100 bg-white p-4 transition-colors"
           >
             <div className="flex items-start gap-3">
               {prize.image_url && (
@@ -357,12 +353,6 @@ export default function PrizeManager() {
                   >
                     ต้องหมุน {prize.wins_required} ครั้ง
                   </Badge>
-                  {prize.is_selected && (
-                    <Badge className="text-xs bg-purple-600 text-white shrink-0">
-                      <CheckCircle2 className="w-3 h-3 mr-1" />
-                      กำลังใช้งาน
-                    </Badge>
-                  )}
                   {prize.is_won && (
                     <Badge className="text-xs bg-amber-500 text-white shrink-0">
                       <Trophy className="w-3 h-3 mr-1" />
@@ -385,7 +375,7 @@ export default function PrizeManager() {
               </div>
 
               <div className="flex gap-1.5 shrink-0">
-                {!prize.is_won && !prize.is_selected && (
+                {!prize.is_won && (
                   <Button
                     size="sm"
                     variant="outline"
@@ -405,7 +395,7 @@ export default function PrizeManager() {
                     <Pencil className="w-3.5 h-3.5" />
                   </Button>
                 )}
-                {!prize.is_selected && !prize.is_won && (
+                {!prize.is_won && (
                   <Button
                     size="icon"
                     variant="ghost"

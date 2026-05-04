@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -7,6 +7,11 @@
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
   public: {
     Tables: {
       customer_prize_spins: {
@@ -54,6 +59,7 @@ export type Database = {
       customers: {
         Row: {
           created_at: string
+          deleted_at: string | null
           id: string
           is_active: boolean
           is_winner: boolean
@@ -61,6 +67,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          deleted_at?: string | null
           id?: string
           is_active?: boolean
           is_winner?: boolean
@@ -68,6 +75,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          deleted_at?: string | null
           id?: string
           is_active?: boolean
           is_winner?: boolean
@@ -78,10 +86,10 @@ export type Database = {
       prizes: {
         Row: {
           created_at: string
+          deleted_at: string | null
           description: string | null
           id: string
           image_url: string | null
-          is_selected: boolean
           is_won: boolean
           name: string
           remove_after_win: boolean
@@ -90,10 +98,10 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
           id?: string
           image_url?: string | null
-          is_selected?: boolean
           is_won?: boolean
           name: string
           remove_after_win?: boolean
@@ -102,10 +110,10 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
           id?: string
           image_url?: string | null
-          is_selected?: boolean
           is_won?: boolean
           name?: string
           remove_after_win?: boolean
@@ -334,4 +342,3 @@ export type CustomerUpdate = TablesUpdate<"customers">
 export type Prize = Tables<"prizes">
 export type SpinResult = Tables<"spin_results">
 export type CustomerPrizeSpin = Tables<"customer_prize_spins">
-

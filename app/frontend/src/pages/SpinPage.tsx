@@ -40,21 +40,6 @@ function usePrizeById(prizeId: string | null) {
   });
 }
 
-function useFallbackActivePrize() {
-  return useQuery({
-    queryKey: ["activePrize"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("prizes")
-        .select("*")
-        .eq("is_selected", true)
-        .maybeSingle();
-      if (error) throw error;
-      return data as Prize | null;
-    },
-  });
-}
-
 export default function SpinPage() {
   const [isSpinning, setIsSpinning] = useState(false);
   const [winnerIndex, setWinnerIndex] = useState<number | null>(null);
@@ -70,9 +55,8 @@ export default function SpinPage() {
   const { data: settings } = useSpinSettings();
   const { data: prizes = [] } = usePrizes();
   const { data: prizeById } = usePrizeById(prizeParam);
-  const { data: fallbackPrize } = useFallbackActivePrize();
 
-  const activePrize = prizeParam ? prizeById : fallbackPrize;
+  const activePrize = prizeById ?? null;
 
   const updateCustomer = useUpdateCustomer();
   const createResult = useCreateSpinResult();
@@ -139,13 +123,8 @@ export default function SpinPage() {
       if (winner_ && activePrize) {
         await supabase
           .from("prizes")
-          .update({
-            is_won: true,
-            winner_customer_id: winner.id,
-            is_selected: false,
-          })
+          .update({ is_won: true, winner_customer_id: winner.id })
           .eq("id", activePrize.id);
-        queryClient.invalidateQueries({ queryKey: ["activePrize"] });
         queryClient.invalidateQueries({ queryKey: ["prize", activePrize.id] });
         queryClient.invalidateQueries({ queryKey: ["prizes"] });
       }

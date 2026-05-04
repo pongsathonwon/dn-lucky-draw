@@ -66,9 +66,9 @@ Supabase (PostgreSQL + Auth + Storage) + React 18 + Vite + TypeScript.
 ```sql
 id          uuid primary key default gen_random_uuid()
 name        text not null
-spin_count  integer not null default 0
 is_winner   boolean not null default false
 is_active   boolean not null default true
+deleted_at  timestamptz                    -- null = active; set to soft-delete
 created_at  timestamptz not null default now()
 ```
 
@@ -92,14 +92,12 @@ wins_required       integer not null default 1     -- spins needed per win
 remove_after_win    boolean not null default false
 is_won              boolean not null default false
 winner_customer_id  uuid references customers(id) on delete set null
-is_selected         boolean not null default false -- only one true at a time
+deleted_at          timestamptz                    -- null = active; set to soft-delete
 created_at          timestamptz not null default now()
 ```
 
-> **At most one selected prize** enforced by a partial unique index:
-> `create unique index prizes_one_selected on prizes (is_selected) where is_selected = true`
->
 > `wins_required` and `remove_after_win` **moved here from `spin_settings`** in migration `20260503000000`.
+> Prize selection is URL-param only (`?prize=<uuid>`) — there is no server-side selected flag.
 
 ### `spin_settings`
 
@@ -158,20 +156,20 @@ const isWin = (newSpinCount: number, winsRequired: number): boolean =>
 ### Reset all customers
 
 ```ts
-// .gte workaround — Supabase requires a filter for bulk updates
+// .gte + .is workaround — Supabase requires filters for bulk updates; exclude soft-deleted rows
 supabase
   .from("customers")
-  .update({ spin_count: 0, is_winner: false })
-  .gte("created_at", "1970-01-01");
+  .update({ is_winner: false, is_active: true })
+  .gte("created_at", "1970-01-01")
+  .is("deleted_at", null);
 ```
 
 ### Active prize
 
 ```ts
-// SpinPage queries the selected prize; falls back to safe defaults when none selected
-const { data: activePrize } = useQuery({ queryFn: () =>
-  supabase.from("prizes").select("*").eq("is_selected", true).maybeSingle()
-});
+// SpinPage reads the ?prize=<uuid> URL param; no server-side selected flag
+const prizeParam = searchParams.get("prize");
+const { data: activePrize } = usePrizeById(prizeParam); // null when no param
 const winsRequired = activePrize?.wins_required ?? 1;
 ```
 
@@ -179,16 +177,15 @@ const winsRequired = activePrize?.wins_required ?? 1;
 
 ```ts
 supabase.from("prizes")
-  .update({ is_won: true, winner_customer_id: winner.id, is_selected: false })
+  .update({ is_won: true, winner_customer_id: winner.id })
   .eq("id", activePrize.id);
-// After this activePrize becomes null — admin must pick next prize
+// activePrize.is_won becomes true; spin button disabled until operator picks next prize via URL
 ```
 
 ### Selecting a new prize (useSelectPrize)
 
-1. Clear `is_selected` on all prizes (`.gte('created_at','1970-01-01')`)
-2. Set `is_selected = true` on the chosen prize
-3. Reset all customers (`spin_count=0, is_winner=false, is_active=true`)
+1. Reset all non-deleted customers (`is_winner: false, is_active: true`)
+2. Operator navigates to `/?prize=<id>` via the prize dropdown on SpinPage
 
 ### Image upload
 
@@ -205,12 +202,15 @@ supabase.storage.from("prize-images").upload(path, file);
 - **`moduleResolution: bundler`** — do not add `baseUrl` (deprecated for this mode)
 - **`src/vite-env.d.ts`** must contain `/// <reference types="vite/client" />` to type `import.meta.env`
 - **No `any`** — use `unknown` and narrow, or use generated types
-- **Generated types** live in `src/types/supabase.ts` — never edit manually
-- **Type aliases for readability:**
+- **Generated types** live in `src/types/supabase.ts` — the file is regenerated after every migration but convenience aliases at the bottom must be re-appended manually
+- **Type aliases for readability** (appended to the bottom of `supabase.ts` after each regen):
   ```ts
-  type Customer = Database["public"]["Tables"]["customers"]["Row"];
-  type CustomerInsert = Database["public"]["Tables"]["customers"]["Insert"];
-  type CustomerUpdate = Database["public"]["Tables"]["customers"]["Update"];
+  export type Customer = Tables<"customers">
+  export type CustomerInsert = TablesInsert<"customers">
+  export type CustomerUpdate = TablesUpdate<"customers">
+  export type Prize = Tables<"prizes">
+  export type SpinResult = Tables<"spin_results">
+  export type CustomerPrizeSpin = Tables<"customer_prize_spins">
   ```
 - **File extensions:** `.ts` for logic/hooks, `.tsx` for anything returning JSX
 - **Type-only imports:** `import type { Foo } from '...'`
@@ -256,6 +256,8 @@ supabase.storage.from("prize-images").upload(path, file);
 | `spin_settings` second row          | Never insert — always update the single existing row                        |
 | Shadcn `.jsx` → `.tsx`              | All UI primitives must be `.tsx`; `forwardRef` needs explicit generic types  |
 | Shadcn UI components need prop types | Components like `Badge`, `DialogHeader`, `AlertDialogHeader` need explicit TypeScript interfaces/parameter types — untyped `forwardRef` or plain function params infer poorly for strict-mode callers |
+| `supabase gen types` prepends stderr  | Always redirect stderr: `npx supabase gen types typescript --linked --schema public 2>/dev/null > supabase.ts`; then re-append the convenience aliases block |
+| Soft-deleted rows in bulk updates    | All `.gte('created_at', '1970-01-01')` bulk updates must also chain `.is('deleted_at', null)` to avoid re-activating deleted records |
 
 ---
 

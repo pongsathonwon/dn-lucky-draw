@@ -34,3 +34,5 @@ TASK-<NNN>-<short-slug>.md
 | TASK-004-B | Multi-prize: PrizeManager admin UI                   | done   | frontend, ui, supabase                                  |
 | TASK-004-C | Multi-prize: wire SpinPage to active prize           | done   | frontend, ui                                            |
 | TASK-005   | Per-prize spin tracking + prize selector on SpinPage | done   | supabase, migration, frontend, ui                       |
+| TASK-006   | Remove server-side is_selected from prizes           | done   | supabase, migration, frontend, chore                    |
+| TASK-007   | Soft delete for prizes and customers                 | done   | supabase, migration, frontend                           |
