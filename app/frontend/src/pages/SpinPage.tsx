@@ -1,10 +1,6 @@
 import { useState, useMemo } from "react";
 import { useSearchParams, Link } from "react-router-dom";
-import {
-  useCustomers,
-  useUpdateCustomer,
-  useResetAllCustomers,
-} from "@/hooks/useCustomers";
+import { useCustomers, useUpdateCustomer } from "@/hooks/useCustomers";
 import { useSpinSettings } from "@/hooks/useSpinSettings";
 import { useCreateSpinResult } from "@/hooks/useSpinResults";
 import { usePrizes, useResetPrize } from "@/hooks/usePrizes";
@@ -60,7 +56,6 @@ export default function SpinPage() {
 
   const updateCustomer = useUpdateCustomer();
   const createResult = useCreateSpinResult();
-  const resetAll = useResetAllCustomers();
   const resetPrize = useResetPrize();
   const deletePrizeSpins = useDeletePrizeSpins();
   const upsertPrizeSpin = useUpsertPrizeSpin();
@@ -158,13 +153,17 @@ export default function SpinPage() {
   };
 
   const handleReset = async () => {
-    if (isSpinning) return;
-    await resetAll.mutateAsync();
-    if (activePrize) {
-      await Promise.all([
-        resetPrize.mutateAsync(activePrize.id),
-        deletePrizeSpins.mutateAsync(activePrize.id),
-      ]);
+    if (isSpinning || !activePrize) return;
+    const winnerId = activePrize.winner_customer_id;
+    await Promise.all([
+      resetPrize.mutateAsync(activePrize.id),
+      deletePrizeSpins.mutateAsync(activePrize.id),
+    ]);
+    if (winnerId) {
+      await updateCustomer.mutateAsync({
+        id: winnerId,
+        data: { is_winner: false, is_active: true },
+      });
     }
     setSelectedCustomer(null);
   };
