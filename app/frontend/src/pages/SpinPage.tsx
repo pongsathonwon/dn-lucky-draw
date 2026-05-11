@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import {
   useCustomers,
@@ -77,7 +77,21 @@ export default function SpinPage() {
 
   const prizeWon = activePrize?.is_won ?? false;
 
-  const activeCustomers = customers.filter((c) => c.is_active !== false);
+  const excludedFromSingleWin = useMemo(
+    () =>
+      new Set(
+        prizes
+          .filter((p) => p.wins_required === 1 && p.is_won && p.winner_customer_id)
+          .map((p) => p.winner_customer_id!)
+      ),
+    [prizes]
+  );
+
+  const activeCustomers = customers.filter(
+    (c) =>
+      c.is_active !== false &&
+      !(winsRequired === 1 && excludedFromSingleWin.has(c.id))
+  );
 
   const handlePrizeSelect = (id: string) => {
     setSearchParams(id ? { prize: id } : {});
