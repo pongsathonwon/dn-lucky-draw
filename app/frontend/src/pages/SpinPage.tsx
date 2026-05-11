@@ -18,7 +18,7 @@ import ResultToast from "@/components/spin/ResultToast";
 const isWin = (newSpinCount: number, winsRequired: number): boolean =>
   newSpinCount > 0 && newSpinCount % winsRequired === 0;
 
-const WINNER_POPUP_DELAY = 1000;
+const WINNER_POPUP_DELAY = 500;
 
 function usePrizeById(prizeId: string | null) {
   return useQuery({
