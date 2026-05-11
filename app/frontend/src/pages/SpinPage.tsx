@@ -246,24 +246,29 @@ export default function SpinPage() {
             </div>
           )}
 
-          <div className="flex gap-3">
-            <Button
-              onClick={handleSpin}
-              disabled={isSpinning || activeCustomers.length === 0 || prizeWon}
-              className="bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-purple-950 font-bold text-base px-8 py-5 rounded-2xl shadow-lg shadow-yellow-500/20 disabled:opacity-50"
-            >
-              <Play className="w-5 h-5 mr-2" />
-              {isSpinning ? "กำลังสุ่ม..." : "หมุนวงล้อ!"}
-            </Button>
-            <Button
-              onClick={handleReset}
-              disabled={isSpinning}
-              variant="outline"
-              className="border-white/20 text-white hover:bg-white/10 px-5 py-5 rounded-2xl"
-            >
-              <RotateCcw className="w-4 h-4 mr-1.5" />
-              รีเซ็ต
-            </Button>
+          <div className="flex flex-col items-center gap-2">
+            <div className="flex gap-3">
+              <Button
+                onClick={handleSpin}
+                disabled={isSpinning || activeCustomers.length === 0 || prizeWon}
+                className="bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-purple-950 font-bold text-base px-8 py-5 rounded-2xl shadow-lg shadow-yellow-500/20 disabled:opacity-50"
+              >
+                <Play className="w-5 h-5 mr-2" />
+                {isSpinning ? "กำลังสุ่ม..." : "หมุนวงล้อ!"}
+              </Button>
+              <Button
+                onClick={handleReset}
+                disabled={isSpinning}
+                variant="outline"
+                className="border-white/20 text-white hover:bg-white/10 px-5 py-5 rounded-2xl"
+              >
+                <RotateCcw className="w-4 h-4 mr-1.5" />
+                รีเซ็ต
+              </Button>
+            </div>
+            <p className="text-white/50 text-sm">
+              ผู้ร่วมสนุก {activeCustomers.length} คน
+            </p>
           </div>
         </div>
 
