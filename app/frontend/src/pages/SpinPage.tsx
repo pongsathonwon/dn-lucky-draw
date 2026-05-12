@@ -72,6 +72,10 @@ export default function SpinPage() {
 
   const prizeWon = activePrize?.is_won ?? false;
 
+  const prizeWinner = prizeWon && activePrize?.winner_customer_id
+    ? customers.find((c) => c.id === activePrize.winner_customer_id) ?? null
+    : null;
+
   const excludedFromSingleWin = useMemo(
     () =>
       new Set(
@@ -222,7 +226,17 @@ export default function SpinPage() {
 
       <main className="relative z-10 flex-1 flex flex-col lg:flex-row gap-4 px-4 md:px-6 pb-4 overflow-hidden">
         <div className="flex flex-col items-center justify-center gap-4 flex-1 min-w-0">
-          {activeCustomers.length === 0 ? (
+          {prizeWon && prizeWinner ? (
+            <div className="w-full max-w-2xl rounded-2xl bg-white/10 border-2 border-yellow-400/60 flex flex-col items-center justify-center py-16 gap-4">
+              <p className="text-yellow-300 font-semibold text-sm tracking-widest uppercase">ผู้ชนะรางวัล</p>
+              <p className="text-yellow-300 font-bold truncate text-center px-4" style={{ fontSize: "clamp(1.4rem, 4vw, 2.2rem)" }}>
+                {prizeWinner.name}
+              </p>
+              {activePrize?.name && (
+                <p className="text-white/80 font-semibold text-xl">{activePrize.name}</p>
+              )}
+            </div>
+          ) : activeCustomers.length === 0 ? (
             <div className="w-full max-w-md rounded-2xl bg-white/5 border-2 border-dashed border-white/20 flex items-center justify-center py-20">
               <p className="text-white/50 text-center px-8 text-sm">
                 ยังไม่มีรายชื่อ
