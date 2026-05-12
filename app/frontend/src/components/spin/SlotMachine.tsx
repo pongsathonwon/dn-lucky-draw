@@ -89,12 +89,12 @@ export default function SlotMachine({
 
   return (
     <div className="flex flex-col items-center gap-0 w-full max-w-md mx-auto">
-      <div className="relative w-full bg-gradient-to-b from-purple-950 to-indigo-950 rounded-3xl border-2 border-purple-500/40 shadow-2xl overflow-hidden">
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-purple-400/40 to-transparent" />
+      <div className="relative w-full backdrop-blur-md bg-white/10 rounded-3xl border border-white/20 shadow-2xl overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-white/30 to-transparent" />
 
         <div className="relative py-4 px-6">
           <div
-            className="absolute left-4 right-4 rounded-xl bg-purple-600/25 border border-purple-400/30"
+            className="absolute left-4 right-4 rounded-xl bg-white/10 border border-white/20"
             style={{ top: "50%", transform: "translateY(-50%)", height: "30%" }}
           />
 
@@ -105,7 +105,7 @@ export default function SlotMachine({
               </span>
             </div>
 
-            <div className="h-px bg-purple-400/20 mx-8" />
+            <div className="h-px bg-white/20 mx-8" />
 
             <div className="py-5 flex items-center justify-center">
               <motion.span
@@ -121,7 +121,7 @@ export default function SlotMachine({
               </motion.span>
             </div>
 
-            <div className="h-px bg-purple-400/20 mx-8" />
+            <div className="h-px bg-white/20 mx-8" />
 
             <div className="py-3 flex items-center justify-center opacity-40">
               <span className="text-white text-lg font-medium truncate px-4 text-center">
@@ -131,10 +131,10 @@ export default function SlotMachine({
           </div>
         </div>
 
-        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-purple-400/40 text-2xl select-none">
+        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 text-2xl select-none">
           ❮
         </div>
-        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-purple-400/40 text-2xl select-none">
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 text-2xl select-none">
           ❯
         </div>
       </div>

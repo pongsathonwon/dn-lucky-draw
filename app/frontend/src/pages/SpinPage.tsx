@@ -169,11 +169,7 @@ export default function SpinPage() {
   };
 
   return (
-    <div className="h-screen overflow-hidden bg-gradient-to-br from-purple-950 via-purple-900 to-indigo-950 relative flex flex-col">
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl" />
-      </div>
+    <div className="h-screen overflow-hidden bg-[url('/background-with-end-margin.jpg')] bg-cover bg-center relative flex flex-col">
 
       <header className="relative z-10 flex items-center justify-between px-4 md:px-8 py-3 shrink-0">
         <div className="flex flex-col items-start leading-none">
