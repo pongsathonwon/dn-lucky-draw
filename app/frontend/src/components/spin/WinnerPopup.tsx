@@ -95,10 +95,10 @@ export default function WinnerPopup({
               transition={{ delay: 0.4 }}
               className="mt-4"
             >
-              <p className="text-yellow-300 text-xl font-semibold flex items-center justify-center gap-2">
-                <Sparkles className="w-5 h-5" />
+              <p className="text-yellow-300 text-3xl md:text-4xl font-bold flex items-center justify-center gap-2">
+                <Sparkles className="w-7 h-7" />
                 {customerName}
-                <Sparkles className="w-5 h-5" />
+                <Sparkles className="w-7 h-7" />
               </p>
             </motion.div>
 
@@ -107,7 +107,7 @@ export default function WinnerPopup({
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.6 }}
-                className="text-white font-bold text-2xl mt-4"
+                className="text-white font-bold text-3xl md:text-4xl mt-4"
               >
                 {prizeName}
               </motion.p>
@@ -117,7 +117,7 @@ export default function WinnerPopup({
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: prizeName ? 0.75 : 0.6 }}
-              className="text-white/90 text-lg mt-2 leading-relaxed"
+              className="text-white/90 text-xl md:text-2xl mt-2 leading-relaxed"
             >
               {prizeText ?? "🎉 ได้รับรางวัลพิเศษ!"}
             </motion.p>
