@@ -36,7 +36,8 @@ export default function SlotMachine({
 
   useEffect(() => {
     if (customers.length > 0) {
-      setDisplayItems(getThree(customers, 0));
+      const randomIdx = Math.floor(Math.random() * customers.length);
+      setDisplayItems(getThree(customers, randomIdx));
     }
   }, [customers.length]);
 
