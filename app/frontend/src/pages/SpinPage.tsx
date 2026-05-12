@@ -173,7 +173,7 @@ export default function SpinPage() {
   };
 
   return (
-    <div className="h-screen overflow-hidden bg-[url('/background-with-end-margin.jpg')] bg-cover bg-center relative flex flex-col">
+    <div className="h-screen overflow-hidden bg-[url('/background-with-end-margin-2.jpg')] bg-cover bg-center relative flex flex-col">
 
       <header className="relative z-10 flex items-center justify-between px-4 md:px-8 py-3 shrink-0">
         <div className="flex flex-col items-start leading-none">
