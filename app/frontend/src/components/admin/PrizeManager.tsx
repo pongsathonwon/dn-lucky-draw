@@ -7,13 +7,11 @@ import {
   useCreatePrize,
   useUpdatePrize,
   useDeletePrize,
-  useSelectPrize,
 } from "@/hooks/usePrizes";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -85,7 +83,6 @@ function PrizeFormDialog({
     },
   });
 
-  const removeAfterWin = watch("remove_after_win");
   const imageUrl = watch("image_url");
 
   React.useEffect(() => {
@@ -170,19 +167,6 @@ function PrizeFormDialog({
             />
           </div>
 
-          <div className="flex items-center justify-between p-3 bg-purple-50 rounded-xl">
-            <div>
-              <Label className="text-purple-800">คัดออกหลังชนะ</Label>
-              <p className="text-xs text-purple-500 mt-0.5">
-                เอาชื่อออกจากวงล้อหลังได้รางวัล
-              </p>
-            </div>
-            <Switch
-              checked={removeAfterWin}
-              onCheckedChange={(v) => setValue("remove_after_win", v)}
-            />
-          </div>
-
           <div className="space-y-1.5">
             <Label className="text-purple-800">รูปรางวัล (ไม่จำเป็น)</Label>
             <div className="flex items-center gap-3">
@@ -233,12 +217,9 @@ export default function PrizeManager() {
   const createPrize = useCreatePrize();
   const updatePrize = useUpdatePrize();
   const deletePrize = useDeletePrize();
-  const selectPrize = useSelectPrize();
-
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Prize | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Prize | null>(null);
-  const [selectTarget, setSelectTarget] = useState<Prize | null>(null);
 
   const handleCreate = async (values: PrizeFormValues) => {
     await createPrize.mutateAsync(
@@ -288,17 +269,6 @@ export default function PrizeManager() {
         setDeleteTarget(null);
       },
       onError: () => toast.error("ลบรางวัลไม่สำเร็จ"),
-    });
-  };
-
-  const handleSelect = async () => {
-    if (!selectTarget) return;
-    await selectPrize.mutateAsync(selectTarget.id, {
-      onSuccess: () => {
-        toast.success("เลือกรางวัลและรีเซ็ตรายชื่อเรียบร้อย");
-        setSelectTarget(null);
-      },
-      onError: () => toast.error("เลือกรางวัลไม่สำเร็จ"),
     });
   };
 
@@ -377,16 +347,6 @@ export default function PrizeManager() {
               <div className="flex gap-1.5 shrink-0">
                 {!prize.is_won && (
                   <Button
-                    size="sm"
-                    variant="outline"
-                    className="border-purple-300 text-purple-700 hover:bg-purple-50 text-xs px-2 h-8"
-                    onClick={() => setSelectTarget(prize)}
-                  >
-                    เลือกรางวัลนี้
-                  </Button>
-                )}
-                {!prize.is_won && (
-                  <Button
                     size="icon"
                     variant="ghost"
                     className="w-8 h-8 text-purple-500 hover:text-purple-700 hover:bg-purple-50"
@@ -437,32 +397,6 @@ export default function PrizeManager() {
           isPending={updatePrize.isPending}
         />
       )}
-
-      {/* Select confirmation */}
-      <AlertDialog
-        open={!!selectTarget}
-        onOpenChange={(open) => !open && setSelectTarget(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>เลือกรางวัลนี้?</AlertDialogTitle>
-            <AlertDialogDescription>
-              การเลือกรางวัล <strong>{selectTarget?.name}</strong>{" "}
-              จะรีเซ็ตรายชื่อลูกค้าทั้งหมด (spin_count, is_winner)
-              กลับเป็นค่าเริ่มต้น
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleSelect}
-              className="bg-purple-700 hover:bg-purple-600 text-white"
-            >
-              ยืนยัน
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Delete confirmation */}
       <AlertDialog
